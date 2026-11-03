@@ -1,0 +1,53 @@
+# Yeni bir sürüm etiketi (ör. v1.0.1) gönderildiğinde Windows kurulum dosyasını derler
+# ve GitHub Releases'e yükler. Kurulu uygulamalar bu sürümü otomatik bulur, indirir
+# ve sağ üstte "Güncelle" butonunu gösterir.
+name: Masaüstü Sürümü
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Yeni sürüm numarası (ör. 1.0.1) — kurulu uygulamalardakinden büyük olmalı'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: Sunucu adresini uygulamaya göm
+        env:
+          YANKI_SERVER_URL: ${{ vars.YANKI_SERVER_URL }}
+        run: |
+          if [ -z "$YANKI_SERVER_URL" ]; then echo "::warning::YANKI_SERVER_URL değişkeni ayarlı değil; uygulama ilk açılışta sunucu adresi soracak."; fi
+          node -e "require('fs').writeFileSync('config.json', JSON.stringify({ serverUrl: process.env.YANKI_SERVER_URL || '' }))"
+
+      - name: Sürüm numarasını ayarla
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF_NAME#v}"; else V="${INPUT_VERSION#v}"; fi
+          npm version "$V" --no-git-tag-version --allow-same-version
+          echo "Sürüm: $V"
+
+      - name: Derle ve GitHub Releases'e yükle
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --x64 --publish always -c.publish.owner="${{ github.repository_owner }}" -c.publish.repo="${{ github.event.repository.name }}"

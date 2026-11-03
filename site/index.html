@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yankı — Arkadaşlarınla konuşmanın özgür yolu</title>
+  <meta name="description" content="Sesli sohbet, ekran paylaşımı, sunucular ve tüm premium özellikler ücretsiz. Yankı'yı Windows için indir.">
+  <meta property="og:title" content="Yankı">
+  <meta property="og:description" content="Tüm Nitro özellikleri bedava. Sesli sohbet, 4K yayın, sunucular. Hemen indir.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --brand: #7c5cff; --text: #dbdee1; --muted: #a5abb5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, 'Segoe UI', system-ui, sans-serif; color: var(--text); background: #0d0b1a; overflow-x: hidden; }
+    .bg { position: fixed; inset: 0; z-index: -1; background: radial-gradient(circle at 15% 15%, #3b1d8f 0%, transparent 42%), radial-gradient(circle at 85% 25%, #0b6e8a 0%, transparent 38%), radial-gradient(circle at 50% 100%, #8a1d6e 0%, transparent 45%), #0d0b1a; }
+    a { color: inherit; }
+    nav { max-width: 1120px; margin: 0 auto; padding: 22px 20px; display: flex; align-items: center; gap: 12px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; color: #fff; text-decoration: none; }
+    .logo img { width: 38px; height: 38px; }
+    nav .sp { flex: 1; }
+    nav a.link { color: var(--muted); text-decoration: none; font-weight: 500; } nav a.link:hover { color: #fff; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 26px; border-radius: 999px; font-weight: 700; font-size: 17px; text-decoration: none; border: 0; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn.primary { background: #fff; color: #23272a; box-shadow: 0 10px 30px rgba(124,92,255,.35); }
+    .btn.dark { background: #23272a; color: #fff; }
+    .btn.sm { padding: 9px 18px; font-size: 14px; }
+    header { max-width: 900px; margin: 40px auto 0; padding: 0 20px; text-align: center; }
+    h1 { font-size: clamp(36px, 6.5vw, 68px); line-height: 1.04; margin: 0 0 20px; color: #fff; letter-spacing: -.03em; }
+    h1 span { background: linear-gradient(90deg, #a28bff, #5ee7ff, #ff8ad8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lead { font-size: 19px; line-height: 1.6; color: var(--muted); max-width: 680px; margin: 0 auto 32px; }
+    .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .note { margin-top: 14px; font-size: 13px; color: #80848e; }
+    .shot { max-width: 1060px; margin: 56px auto 0; padding: 0 20px; }
+    .shot .frame { border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 30px 80px rgba(0,0,0,.6); background: #1e1f22; aspect-ratio: 16/9; display: grid; grid-template-columns: 64px 220px 1fr; }
+    .f-g { background: #1e1f22; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 12px; }
+    .f-g i { width: 44px; height: 44px; border-radius: 50%; background: #313338; display: block; } .f-g i:first-child { background: linear-gradient(135deg, #7c5cff, #00c2ff); border-radius: 14px; }
+    .f-s { background: #2b2d31; padding: 16px 10px; } .f-s b { display: block; height: 12px; border-radius: 6px; background: #3a3c42; margin: 12px 6px; } .f-s b:nth-child(2) { background: #4e5058; width: 70%; }
+    .f-m { background: #313338; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+    .msg { display: flex; gap: 12px; align-items: flex-start; } .msg .a { width: 38px; height: 38px; border-radius: 50%; flex: none; } .msg .l { height: 10px; border-radius: 5px; background: #4e5058; margin: 6px 0; }
+    section { max-width: 1120px; margin: 90px auto 0; padding: 0 20px; }
+    h2 { text-align: center; color: #fff; font-size: clamp(28px, 4vw, 40px); margin: 0 0 12px; }
+    .sub { text-align: center; color: var(--muted); margin: 0 0 36px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+    .card { background: rgba(30,31,40,.7); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 22px; backdrop-filter: blur(10px); }
+    .card .e { font-size: 30px; } .card h3 { color: #fff; margin: 10px 0 6px; font-size: 17px; } .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .compare { width: 100%; border-collapse: collapse; background: rgba(30,31,40,.7); border-radius: 14px; overflow: hidden; }
+    .compare td, .compare th { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.06); text-align: left; font-size: 15px; } .compare th { color: #fff; background: rgba(124,92,255,.2); }
+    .compare td:nth-child(2), .compare td:nth-child(3), .compare th:nth-child(2), .compare th:nth-child(3) { text-align: center; }
+    .y { color: #57f287; font-weight: 700; } .n { color: #f0b232; }
+    .final { text-align: center; margin: 100px auto 0; padding: 60px 20px; max-width: 900px; background: linear-gradient(135deg, rgba(124,92,255,.35), rgba(255,95,184,.25)); border-radius: 24px; }
+    footer { text-align: center; color: #80848e; font-size: 13px; padding: 50px 20px 40px; }
+    @media (max-width: 720px) { .shot .frame { grid-template-columns: 52px 1fr; } .f-s { display: none; } nav a.link { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+  <nav>
+    <a class="logo" href="/"><img src="/favicon.svg" alt="">Yankı</a>
+    <span class="sp"></span>
+    <a class="link" href="#ozellikler">Özellikler</a>
+    <a class="link" href="#karsilastir">Karşılaştır</a>
+    <a class="btn dark sm" data-web href="#">Tarayıcıda Aç</a>
+  </nav>
+
+  <header>
+    <h1>Arkadaşlarınla konuşmanın <span>özgür yolu</span></h1>
+    <p class="lead">Sunucular, sesli sohbet, ekran paylaşımı ve Nitro'da paralı olan her şey. Hepsi <b style="color:#fff">ücretsiz</b>, hepsi <b style="color:#fff">Türkçe</b>.</p>
+    <div class="cta">
+      <a class="btn primary" data-download href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.5v7H3v-6zm0 13 7.5 1v-7H3v6zm8.5 1.2L21 21v-8.5h-9.5v7.2zm0-15.4v7.2H21V3l-9.5 1.3z"/></svg>Windows için İndir</a>
+      <a class="btn dark" data-web href="#">Tarayıcıda Kullan</a>
+    </div>
+    <div class="note" id="ver">Windows 10 / 11 • 64-bit • Otomatik güncellenir</div>
+  </header>
+
+  <div class="shot"><div class="frame">
+    <div class="f-g"><i></i><i></i><i></i><i></i></div>
+    <div class="f-s"><b></b><b></b><b></b><b></b><b></b><b></b></div>
+    <div class="f-m">
+      <div class="msg"><div class="a" style="background:#7c5cff"></div><div style="flex:1"><div class="l" style="width:22%;background:#a28bff"></div><div class="l" style="width:64%"></div></div></div>
+      <div class="msg"><div class="a" style="background:#3ba55c"></div><div style="flex:1"><div class="l" style="width:18%;background:#eb459e"></div><div class="l" style="width:48%"></div><div class="l" style="width:36%"></div></div></div>
+      <div class="msg"><div class="a" style="background:#f0b232"></div><div style="flex:1"><div class="l" style="width:26%;background:#5ee7ff"></div><div style="margin-top:8px;border-radius:10px;background:#2b2d31;height:90px;width:60%"></div></div></div>
+    </div>
+  </div></div>
+
+  <section id="ozellikler">
+    <h2>Discord'da sevdiğin her şey. Ve fazlası.</h2>
+    <p class="sub">Para verdiğin özellikler burada standart.</p>
+    <div class="grid">
+      <div class="card"><div class="e">💎</div><h3>Tüm Nitro özellikleri bedava</h3><p>GIF avatar ve afiş, profil temaları, avatar süsleri, profil efektleri, gradyan isimler.</p></div>
+      <div class="card"><div class="e">📺</div><h3>4K 60 FPS yayın</h3><p>Ekranını ya da oyununu bilgisayar sesiyle birlikte yüksek kalitede yayınla.</p></div>
+      <div class="card"><div class="e">🎙️</div><h3>Kristal netliğinde ses</h3><p>Gürültü engelleme, bas-konuş, kişiye özel ses seviyesi ve ücretsiz ses efektleri.</p></div>
+      <div class="card"><div class="e">💣</div><h3>Kendini imha eden mesajlar</h3><p>Mesajına süre koy. Süre dolunca herkesten silinsin.</p></div>
+      <div class="card"><div class="e">⏰</div><h3>Zamanlanmış mesajlar</h3><p>Doğum günü mesajını şimdiden yaz, gece yarısı kendiliğinden gitsin.</p></div>
+      <div class="card"><div class="e">📊</div><h3>Anketler ve komutlar</h3><p>/anket, /zar, /yazitura, /8top: bot kurmana gerek yok.</p></div>
+      <div class="card"><div class="e">📁</div><h3>100 MB dosya</h3><p>Sürükle bırak, yapıştır, spoiler olarak işaretle.</p></div>
+      <div class="card"><div class="e">🔄</div><h3>Otomatik güncelleme</h3><p>Yeni sürüm çıktığında sağ üstte "Güncelle" butonu belirir. Tek tık.</p></div>
+    </div>
+  </section>
+
+  <section id="karsilastir">
+    <h2>Yan yana</h2>
+    <p class="sub">&nbsp;</p>
+    <table class="compare">
+      <tr><th>Özellik</th><th>Yankı</th><th>Diğerleri</th></tr>
+      <tr><td>Animasyonlu avatar & profil teması</td><td class="y">Ücretsiz</td><td class="n">Ücretli</td></tr>
+      <tr><td>1080p60 / 4K yayın</td><td class="y">Ücretsiz</td><td class="n">Ücretli</td></tr>
+      <tr><td>Her sunucuda özel emoji</td><td class="y">Ücretsiz</td><td class="n">Ücretli</td></tr>
+      <tr><td>100 MB dosya yükleme</td><td class="y">Ücretsiz</td><td class="n">Ücretli</td></tr>
+      <tr><td>Kendini imha eden mesajlar</td><td class="y">Var</td><td class="n">Yok</td></tr>
+      <tr><td>Zamanlanmış mesajlar</td><td class="y">Var</td><td class="n">Yok</td></tr>
+      <tr><td>Tamamen Türkçe & reklamsız</td><td class="y">Evet</td><td class="n">Kısmen</td></tr>
+    </table>
+  </section>
+
+  <div class="final">
+    <h2>Hazır mısın?</h2>
+    <p class="sub" style="margin-bottom:26px">Kur, hesabını aç, arkadaşlarını davet et. 2 dakika sürer.</p>
+    <a class="btn primary" data-download href="#">Windows için İndir</a>
+  </div>
+
+  <footer>© <span id="y"></span> Yankı • <a data-web href="#">Web sürümü</a> • <a id="gh" href="#">Sürüm notları</a></footer>
+
+  <script src="/config.js"></script>
+  <script>
+    const C = window.YANKI_SITE || {};
+    const dl = `https://github.com/${C.githubRepo}/releases/latest/download/Yanki-Setup.exe`;
+    document.querySelectorAll('[data-download]').forEach((a) => (a.href = dl));
+    document.querySelectorAll('[data-web]').forEach((a) => (a.href = C.webUrl || '#'));
+    document.getElementById('gh').href = `https://github.com/${C.githubRepo}/releases`;
+    document.getElementById('y').textContent = new Date().getFullYear();
+    fetch(`https://api.github.com/repos/${C.githubRepo}/releases/latest`).then((r) => r.ok && r.json()).then((r) => {
+      if (r && r.tag_name) document.getElementById('ver').textContent = `Sürüm ${r.tag_name.replace(/^v/, '')} • Windows 10 / 11 • 64-bit • Otomatik güncellenir`;
+    }).catch(() => {});
+  </script>
+</body>
+</html>

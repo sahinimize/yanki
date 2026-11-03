@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Yankı</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; display: grid; place-items: center; font-family: 'Segoe UI', system-ui, sans-serif; color: #dbdee1;
+    background: radial-gradient(circle at 20% 20%, #3b1d8f 0%, transparent 45%), radial-gradient(circle at 80% 30%, #0b6e8a 0%, transparent 40%), radial-gradient(circle at 50% 90%, #8a1d6e 0%, transparent 45%), #0d0b1a; }
+  .card { width: min(440px, 92vw); background: rgba(30,31,40,.85); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 32px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .mark { width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 16px; background: linear-gradient(135deg, #7c5cff, #00c2ff); display: grid; place-items: center; }
+  .spin .mark { animation: bob 1s ease-in-out infinite alternate; } @keyframes bob { to { transform: translateY(-6px); } }
+  h1 { color: #fff; font-size: 22px; margin: 0 0 8px; } p { color: #b5bac1; margin: 0 0 18px; font-size: 14px; line-height: 1.5; }
+  input { width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid transparent; background: rgba(0,0,0,.35); color: #fff; font-size: 15px; outline: none; margin-bottom: 10px; }
+  input:focus { border-color: #7c5cff; }
+  button { width: 100%; padding: 11px; border: 0; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; background: linear-gradient(90deg, #7c5cff, #5865f2); color: #fff; }
+  button.sec { background: rgba(255,255,255,.08); margin-top: 8px; }
+  .err { color: #f23f43; font-size: 13px; min-height: 18px; margin-bottom: 6px; }
+  small { color: #80848e; display: block; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="mark"><svg viewBox="0 0 24 24" width="34" height="34" fill="#fff"><path d="M12 3a9 9 0 0 0-9 9c0 1.9.6 3.7 1.6 5.1L3.5 21l4-1.1A9 9 0 1 0 12 3zm-3.5 10.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3.5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3.5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></div>
+  <div id="content"></div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const mode = q.get('mode') || 'setup';
+  const c = document.getElementById('content');
+  const D = window.yankiDesktop;
+  if (mode === 'offline') {
+    let n = 10;
+    c.innerHTML = `<h1>Sunucuya bağlanılamadı</h1><p>İnternet bağlantını kontrol et. Sunucu bakımda da olabilir.<br><span style="font-size:12px;color:#80848e">${(q.get('err') || '').replace(/[<>]/g, '')}</span></p><button id="retry">Tekrar Dene (<span id="n">10</span>)</button><button class="sec" id="change">Sunucu adresini değiştir</button><small>${(q.get('url') || '').replace(/[<>]/g, '')}</small>`;
+    document.getElementById('card').classList.add('spin');
+    document.getElementById('retry').onclick = () => D.retry();
+    document.getElementById('change').onclick = () => { location.search = '?mode=setup&url=' + encodeURIComponent(q.get('url') || ''); };
+    setInterval(() => { n--; document.getElementById('n').textContent = n; if (n <= 0) D.retry(); }, 1000);
+  } else {
+    c.innerHTML = `<h1>Yankı'ya hoş geldin!</h1><p>Bağlanmak istediğin Yankı sunucusunun adresini gir.</p><input id="url" placeholder="https://yanki.ornek.com" value="${(q.get('url') || '').replace(/["<>]/g, '')}"><div class="err" id="err"></div><button id="go">Bağlan</button>`;
+    const go = async () => { const r = await D.setServer(document.getElementById('url').value); if (r && r.error) document.getElementById('err').textContent = r.error; };
+    document.getElementById('go').onclick = go;
+    document.getElementById('url').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+    document.getElementById('url').focus();
+  }
+</script>
+</body>
+</html>
