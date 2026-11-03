@@ -1,6 +1,6 @@
 {
   "name": "yanki-desktop",
-  "productName": "Yankı",
+  "productName": "Yanki",
   "version": "1.0.0",
   "description": "Yankı masaüstü uygulaması",
   "author": "Yankı",
@@ -20,7 +20,7 @@
   },
   "build": {
     "appId": "app.yanki.desktop",
-    "productName": "Yankı",
+    "productName": "Yanki",
     "copyright": "Yankı",
     "directories": {
       "output": "dist",
@@ -50,13 +50,14 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Yankı",
+      "shortcutName": "Yanki",
       "uninstallDisplayName": "Yankı",
       "deleteAppDataOnUninstall": false
     },
     "publish": {
       "provider": "github",
       "releaseType": "release"
-    }
+    },
+    "executableName": "Yanki"
   }
 }
