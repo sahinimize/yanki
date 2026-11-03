@@ -53,7 +53,8 @@ function createWindow() {
   const b = settings.bounds || {};
   win = new BrowserWindow({
     width: b.width || 1280, height: b.height || 800, x: b.x, y: b.y, minWidth: 940, minHeight: 560,
-    backgroundColor: '#1e1f22', title: 'Yankı', icon: ICON, autoHideMenuBar: true, show: false,
+    backgroundColor: '#07080d', title: 'Yankı', icon: ICON, autoHideMenuBar: true, show: false,
+    titleBarStyle: 'hidden', titleBarOverlay: { color: '#08090e', symbolColor: '#9095a8', height: 34 },
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true },
   });
   if (settings.maximized) win.maximize();
@@ -161,6 +162,7 @@ ipcMain.handle('yanki:set-server', async (_e, url) => {
   settings.serverUrl = url; saveSettings(); loadApp();
   return { ok: true };
 });
+ipcMain.on('yanki:titlebar', (_e, o) => { try { win?.setTitleBarOverlay?.({ color: String(o?.color || '#08090e'), symbolColor: String(o?.symbolColor || '#9095a8'), height: 34 }); } catch { /* yoksay */ } });
 ipcMain.handle('yanki:retry', async () => { await discover(); loadApp(); });
 // Arayüz uzun süre sunucuya bağlanamazsa adres değişmiş olabilir: yeni adresi ara
 ipcMain.on('yanki:disconnected', async () => { if (await discover()) loadApp(); });

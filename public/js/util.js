@@ -110,7 +110,7 @@ function toast(msg, type = '') {
   if (!w) { w = h('<div class="toast-wrap"></div>'); document.body.append(w); }
   const t = h(`<div class="toast ${type}">${type === 'err' ? '⚠️' : type === 'ok' ? '✅' : 'ℹ️'} <span>${esc(msg)}</span></div>`);
   w.append(t);
-  setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = 0; setTimeout(() => t.remove(), 300); }, 3200);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 3400);
 }
 const errToast = (e) => toast(e.message || String(e), 'err');
 async function copyText(t) {
@@ -124,7 +124,8 @@ function modal({ title, sub, body = '', foot, cls = '', center = false, onClose 
   const back = h(`<div class="modal-back"><div class="modal ${cls}" role="dialog">
     ${title !== undefined ? `<div class="modal-head ${center ? 'center' : ''}"><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}<button class="icon-btn modal-close" data-close>${icon('x')}</button></div>` : ''}
     <div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ''}</div></div>`);
-  const close = () => { back.remove(); document.removeEventListener('keydown', onKey); onClose?.(); };
+  let closed = false;
+  const close = () => { if (closed) return; closed = true; document.removeEventListener('keydown', onKey); back.classList.add('closing'); setTimeout(() => back.remove(), 200); onClose?.(); };
   const onKey = (e) => { if (e.key === 'Escape' && document.querySelector('.modal-back:last-of-type') === back) close(); };
   back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
   back.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) close(); });
@@ -150,7 +151,7 @@ function promptModal(title, label, value = '', okText = 'Kaydet') {
 }
 
 // ─── Bağlam menüsü ───
-function closeFloating() { $$('.ctx, .picker, .popout').forEach((e) => e.remove()); $$('.m-actions.open').forEach((e) => e.classList.remove('open')); }
+function closeFloating() { $$('.ctx, .picker, .popout').forEach((e) => { if (e.classList.contains('floating-out')) return; e.classList.add('floating-out'); setTimeout(() => e.remove(), 140); }); $$('.m-actions.open').forEach((e) => e.classList.remove('open')); }
 function placeFloating(el, x, y, anchor) {
   document.body.append(el);
   const r = el.getBoundingClientRect();

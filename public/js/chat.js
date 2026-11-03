@@ -31,7 +31,7 @@ const Chat = {
     if (isDM) Views.refreshVoice();
     const arr = this.messages(ch.id);
     if (arr) { this.renderMessages(true); this.ackCurrent(); }
-    else { $('#msgs').innerHTML = '<div class="empty"><div class="spinner"></div></div>'; this.load(ch.id).then(() => { if (App.view.channelId === ch.id) { this.renderMessages(true); this.ackCurrent(); } }); }
+    else { $('#msgs').innerHTML = FX.skeleton(); this.load(ch.id).then(() => { if (App.view.channelId === ch.id) { this.renderMessages(true); this.ackCurrent(); } }); }
     this.bindMessages();
     this.bindDrop();
     if (App.panel) Views.openPanel(App.panel.type, App.panel.arg);
@@ -138,7 +138,7 @@ const Chat = {
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     let html = '';
     if (!App.hasMore.get(ch.id)) html += this.introHTML(ch);
-    else html += '<div class="empty" style="padding:20px"><div class="spinner" style="width:24px;height:24px"></div></div>';
+    else html += FX.skeleton(3);
     let prev = null, newShown = false;
     for (const m of arr) {
       if (!prev || new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString()) { html += `<div class="day-sep"><span>${fmtDay(m.created_at)}</span></div>`; prev = null; }

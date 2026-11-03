@@ -661,8 +661,11 @@ const Views = {
       el.append(h(`<div class="voice-empty"><div style="font-size:40px">📺</div><div class="small">Yayın yükleniyor…</div></div>`));
     } else {
       const u = App.user(t.uid);
-      el.style.background = u?.banner_color || u?.accent_color || '';
-      el.append(h(`<div class="t-av">${avatarHTML(t.uid, 80)}</div>`));
+      const c = u?.banner_color || u?.accent_color || '#8b5cf6';
+      el.style.setProperty('--tc', c);
+      el.classList.add('av-tile');
+      if (u?.avatar) el.append(h(`<div class="t-bg" style="background-image:url('${esc(u.avatar)}')"></div>`));
+      el.append(h(`<div class="t-av"><span class="t-wave"></span><span class="t-wave"></span>${avatarHTML(t.uid, 88)}</div>`));
     }
     const v = t.v;
     el.append(h(`<div class="t-name">${t.kind === 'screen' ? '🖥️ ' : ''}<span class="ellipsis">${esc(App.displayName(t.uid, gid))}${t.kind === 'screen' ? ' — ekran' : ''}</span>${t.kind !== 'screen' && (v.muted || v.server_muted) ? `<span style="color:var(--red)">${icon('micOff', 'sm')}</span>` : ''}${t.kind !== 'screen' && v.deafened ? `<span style="color:var(--red)">${icon('headphones', 'sm')}</span>` : ''}</div>`));

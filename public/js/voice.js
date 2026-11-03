@@ -2,7 +2,7 @@
 'use strict';
 const VoiceSettings = {
   load() {
-    try { return { inputId: '', outputId: '', noiseSuppression: true, echoCancellation: true, autoGain: true, ptt: false, pttKey: 'KeyV', pttLabel: 'V', threshold: 0.02, screenQuality: '1080p60', ...JSON.parse(localStorage.getItem('yanki_voice') || '{}') }; }
+    try { return { inputId: '', outputId: '', nsMode: 'ai', echoCancellation: true, autoGain: true, enhance: true, inputGain: 100, gate: true, gateAuto: true, gateDb: -50, bitrate: 96, ptt: false, pttKey: 'KeyV', pttLabel: 'V', threshold: 0.012, screenQuality: '1080p60', ...JSON.parse(localStorage.getItem('yanki_voice') || '{}') }; }
     catch { return {}; }
   },
   save(s) { localStorage.setItem('yanki_voice', JSON.stringify(s)); },
@@ -25,13 +25,28 @@ const Voice = {
   get socket() { return App.socket; },
   get connected() { return !!this.channelId; },
 
-  async getMic() {
+  async getRawMic() {
     const s = this.settings;
-    try {
-      return await navigator.mediaDevices.getUserMedia({ audio: { deviceId: s.inputId ? { exact: s.inputId } : undefined, noiseSuppression: s.noiseSuppression, echoCancellation: s.echoCancellation, autoGainControl: s.autoGain }, video: false });
-    } catch (e) {
-      if (s.inputId) { s.inputId = ''; return this.getMic(); }
-      throw e;
+    try { return await navigator.mediaDevices.getUserMedia({ audio: AudioFX.rawConstraints(s), video: false }); }
+    catch (e) { if (s.inputId) { s.inputId = ''; return this.getRawMic(); } throw e; }
+  },
+  // Mikrofon sesi Yankı Ses İşleme Motoru'ndan geçirilerek gönderilir
+  async getMic() {
+    const raw = await this.getRawMic();
+    const old = this.fx;
+    try { this.fx = await AudioFX.create(raw, this.settings); old?.destroy(); return this.fx.stream; }
+    catch (e) { console.warn('Ses işleme başlatılamadı', e); this.fx = null; old?.destroy(); return raw; }
+  },
+  applyFx() { this.fx?.update(this.settings); },
+  async applyAudioBitrate(peer) {
+    for (const snd of peer.senders.mic) {
+      try {
+        const p = snd.getParameters();
+        if (!p.encodings?.length) p.encodings = [{}];
+        p.encodings[0].maxBitrate = (this.settings.bitrate || 96) * 1000;
+        p.encodings[0].priority = 'high'; p.encodings[0].networkPriority = 'high';
+        await snd.setParameters(p);
+      } catch { /* yoksay */ }
     }
   },
   async join(channelId) {
@@ -63,6 +78,7 @@ const Voice = {
     for (const r of this.remote.values()) for (const a of r.audio.values()) { a.srcObject = null; a.remove(); }
     this.remote.clear();
     [this.mic, this.cam, this.screen].forEach((s) => s?.getTracks().forEach((t) => t.stop()));
+    this.fx?.destroy(); this.fx = null;
     this.mic = this.cam = this.screen = null;
     for (const a of this.analysers.values()) a.src.disconnect();
     this.analysers.clear(); this.speaking.clear();
@@ -95,6 +111,7 @@ const Voice = {
     };
     pc.onicecandidate = ({ candidate }) => candidate && this.signal(uid, { candidate });
     pc.oniceconnectionstatechange = () => { if (pc.iceConnectionState === 'failed') pc.restartIce?.(); };
+    pc.onconnectionstatechange = () => { if (pc.connectionState === 'connected') { this.applyAudioBitrate(peer); if (this.screen) this.applyBitrate('screen', (SCREEN_PRESETS[this.settings.screenQuality] || SCREEN_PRESETS['1080p60']).bitrate); if (this.cam) this.applyBitrate('cam', 2_500_000); } };
     pc.ontrack = ({ track, streams }) => {
       const stream = streams[0] || new MediaStream([track]);
       let r = this.remote.get(uid);
@@ -233,7 +250,7 @@ const Voice = {
       const n = await this.getMic();
       const track = n.getAudioTracks()[0];
       for (const peer of this.peers.values()) for (const s of peer.senders.mic) await s.replaceTrack(track);
-      this.mic?.getTracks().forEach((t) => t.stop());
+      if (this.mic && this.mic !== n) this.mic.getTracks().forEach((t) => t.stop());
       const old = this.analysers.get('me'); if (old) { old.src.disconnect(); this.analysers.delete('me'); }
       // Yeni track'i mevcut stream kimliğiyle değil, yeni stream ile izliyoruz; karşı taraf mic_stream eşleşmesine ihtiyaç duymaz
       this.mic = n; this.applyMicEnabled(); this.watchLevel('me', n);
@@ -267,7 +284,7 @@ const Voice = {
       for (const [k, a] of this.analysers) {
         const lvl = this.level(k);
         if (k === 'me') { App.onMicLevel?.(lvl); if (!this.mic?.getAudioTracks()[0]?.enabled) continue; }
-        if (lvl > this.settings.threshold) now.add(a.uid);
+        if (lvl > 0.012) now.add(a.uid);
       }
       for (const u of now) if (!this.speaking.has(u)) App.setSpeaking(u, true);
       for (const u of this.speaking) if (!now.has(u)) App.setSpeaking(u, false);
@@ -287,15 +304,15 @@ const Voice = {
 
   // ─── Mikrofon testi (ayarlar) ───
   async micTest(onLevel) {
-    const stream = await this.getMic();
-    const ctx = new AudioContext(), src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser();
-    an.fftSize = 512; src.connect(an);
-    const buf = new Float32Array(512);
+    const raw = await this.getRawMic();
+    const fx = await AudioFX.create(raw, this.settings);
     const loopback = document.createElement('audio');
-    let iv = setInterval(() => { an.getFloatTimeDomainData(buf); let s = 0; for (const v of buf) s += v * v; onLevel(Math.sqrt(s / buf.length)); }, 60);
+    if (this.settings.outputId && loopback.setSinkId) loopback.setSinkId(this.settings.outputId).catch(() => {});
+    const iv = setInterval(() => onLevel(fx.state), 50);
     return {
-      loopback(on) { if (on) { loopback.srcObject = stream; loopback.play(); } else loopback.srcObject = null; },
-      stop() { clearInterval(iv); loopback.srcObject = null; stream.getTracks().forEach((t) => t.stop()); ctx.close(); },
+      fx,
+      loopback(on) { if (on) { loopback.srcObject = fx.stream; loopback.play().catch(() => {}); } else loopback.srcObject = null; },
+      stop() { clearInterval(iv); loopback.srcObject = null; fx.destroy(); },
     };
   },
 };

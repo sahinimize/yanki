@@ -63,10 +63,11 @@ const Auth = {
         const r = await API.post(isReg ? '/api/auth/register' : '/api/auth/login', fd);
         TokenStore.set(r.token);
         API.token = r.token;
-        location.href = this.invite ? '/invite/' + this.invite : '/app/@me';
+        $('#auth')?.classList.add('auth-out');
+        setTimeout(() => { location.href = this.invite ? '/invite/' + this.invite : '/app/@me'; }, 420);
       } catch (ex) {
         err.textContent = ex.message;
-        form.querySelector('.auth-card, form')?.animate?.([{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }], { duration: 300 });
+        form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake');
         btn.disabled = false; btn.textContent = isReg ? 'Devam Et' : 'Giriş Yap';
       }
     };

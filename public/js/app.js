@@ -13,7 +13,7 @@ const App = {
     applyAppearance();
     const inviteMatch = location.pathname.match(/^\/invite\/([\w-]+)/);
     if (!API.token) { Auth.show(inviteMatch?.[1]); return; }
-    document.body.innerHTML = '<div style="height:100vh;display:grid;place-items:center"><div class="col" style="align-items:center;gap:16px"><div class="logo-mark" style="width:64px;height:64px;animation:bob 1s infinite alternate">' + LOGO_SVG + '</div><div class="muted">Yankı yükleniyor…</div></div></div>';
+    document.body.innerHTML = '<div class="splash"><div class="sp-in"><div class="sp-logo"><div class="logo-mark" style="display:grid;place-items:center">' + LOGO_SVG + '</div></div><div class="sp-bar"></div><div class="sp-txt">Yankı yükleniyor…</div></div></div>';
     let data;
     try { data = await API.get('/api/me'); } catch (e) { if (!API.token) return; document.body.innerHTML = `<div class="empty" style="height:100vh"><div class="art">📡</div><h2>Sunucuya bağlanılamadı</h2><p>${esc(e.message)}</p><button class="btn" onclick="location.reload()">Tekrar dene</button></div>`; return; }
     this.load(data);

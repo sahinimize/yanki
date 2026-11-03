@@ -4,6 +4,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('yankiDesktop', {
   platform: process.platform,
+  titlebar: true,
+  setTitlebar: (o) => ipcRenderer.send('yanki:titlebar', o || {}),
   getInfo: () => ipcRenderer.invoke('yanki:get-info'),
   onUpdate: (cb) => ipcRenderer.on('yanki:update', (_e, st) => cb(st)),
   installUpdate: () => ipcRenderer.invoke('yanki:install-update'),

@@ -10,11 +10,11 @@ const THEMES = [
 function settingsShell(navHTML, onNav, onClose) {
   const el = h(`<div class="settings"><div class="s-nav"><div class="s-nav-inner">${navHTML}</div></div><div class="s-content"><div class="s-content-inner" id="sBody"></div></div><div class="s-close"><button id="sClose">${icon('x')}</button>ESC</div></div>`);
   document.body.append(el);
-  const close = () => { el.remove(); document.removeEventListener('keydown', key); onClose?.(); };
+  const close = () => { document.removeEventListener('keydown', key); el.classList.add('closing'); setTimeout(() => el.remove(), 210); onClose?.(); };
   const key = (e) => { if (e.key === 'Escape' && !$('.modal-back') && !$('.ctx, .picker, .popout')) close(); };
   document.addEventListener('keydown', key);
   $('#sClose', el).onclick = close;
-  $('.s-nav', el).onclick = (e) => { const it = e.target.closest('[data-tab]'); if (it) { $$('.item', el).forEach((x) => x.classList.toggle('active', x === it)); onNav(it.dataset.tab); } };
+  $('.s-nav', el).onclick = (e) => { const it = e.target.closest('[data-tab]'); if (it) { $$('.item', el).forEach((x) => x.classList.toggle('active', x === it)); const inner = $('#sBody', el); inner.classList.remove('swap'); onNav(it.dataset.tab); void inner.offsetWidth; inner.classList.add('swap'); el.querySelector('.s-content').scrollTop = 0; } };
   return { el, close, body: $('#sBody', el) };
 }
 
@@ -182,43 +182,95 @@ const UserSettings = {
     try { devices = await navigator.mediaDevices.enumerateDevices(); } catch { /* yoksay */ }
     const ins = devices.filter((d) => d.kind === 'audioinput'), outs = devices.filter((d) => d.kind === 'audiooutput');
     const opt = (list, cur) => `<option value="">Varsayılan</option>` + list.filter((d) => d.deviceId && d.deviceId !== 'default').map((d, i) => `<option value="${esc(d.deviceId)}" ${d.deviceId === cur ? 'selected' : ''}>${esc(d.label || 'Cihaz ' + (i + 1))}</option>`).join('');
+    const seg = (name, items, cur) => `<div class="seg" data-seg="${name}">${items.map(([v, l, d]) => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-v="${v}">${l}${d ? `<small>${d}</small>` : ''}</button>`).join('')}</div>`;
+    const sw = (key, title, desc, on) => `<div class="setting-row"><div><div class="t">${title}</div><div class="d">${desc}</div></div><label class="switch"><input type="checkbox" data-s="${key}" ${on ? 'checked' : ''}><span></span></label></div>`;
     b.innerHTML = `<h2>Ses ve Görüntü</h2>
-      <div class="row" style="gap:16px;align-items:flex-start"><div class="grow"><label class="label">Giriş Cihazı</label><select class="select" id="inDev">${opt(ins, s.inputId)}</select></div><div class="grow"><label class="label">Çıkış Cihazı</label><select class="select" id="outDev">${opt(outs, s.outputId)}</select></div></div>
-      <h3>Mikrofon Testi</h3><p class="small muted">Mikrofonunda sorun mu var? Teste başla ve bir şeyler söyle — sesini sana geri çalacağız.</p>
-      <div class="row"><button class="btn" id="mt">Hadi Kontrol Edelim</button><div class="grow mic-meter" style="height:10px"><div id="mtBar"></div></div></div>
-      <h3>Giriş Modu</h3>
-      <label class="radio-card"><input type="radio" name="im" value="va" ${!s.ptt ? 'checked' : ''}><div><b>Ses Etkinliği</b><div class="small muted">Konuştuğunda mikrofonun otomatik açılır</div></div></label>
-      <label class="radio-card"><input type="radio" name="im" value="ptt" ${s.ptt ? 'checked' : ''}><div><b>Bas-Konuş</b><div class="small muted">Sadece tuşa basılıyken konuşursun</div></div></label>
-      <div class="row ${s.ptt ? '' : 'hidden'}" id="pttRow"><span>Kısayol:</span><button class="btn secondary sm" id="pttKey">${esc(s.pttLabel)}</button><span class="small muted">değiştirmek için tıkla ve bir tuşa bas</span></div>
-      <h3>Giriş Hassasiyeti</h3><p class="small muted">Konuşma algılama eşiği — arka plan gürültüsü konuşuyormuş gibi gösteriyorsa yükselt.</p><input type="range" min="0.003" max="0.15" step="0.001" value="${s.threshold}" class="vol-slider" id="thr">
+      <div class="vs-hero"><div class="vs-hero-ic">🎙️</div><div><b>Yankı Ses İşleme Motoru</b><div class="small">Yapay zekâ gürültü engelleme, ses netleştirici ve akıllı gürültü kapısı. Arkadaşların seni stüdyodaymışsın gibi duysun.</div></div></div>
+      <div class="vs-grid">
+        <div><label class="label">Giriş Cihazı</label><select class="select" id="inDev">${opt(ins, s.inputId)}</select></div>
+        <div><label class="label">Çıkış Cihazı</label><select class="select" id="outDev">${opt(outs, s.outputId)}</select></div>
+        <div><label class="label">Mikrofon Seviyesi <b class="val" id="igv">%${s.inputGain}</b></label><input type="range" min="0" max="200" step="5" value="${s.inputGain}" class="vol-slider" id="ig"></div>
+        <div><label class="label">Ses Kalitesi</label>${seg('bitrate', [[64, '64 kbps'], [96, '96 kbps'], [128, '128 kbps']], s.bitrate)}</div>
+      </div>
+
+      <h3>Mikrofon Testi</h3>
+      <div class="mt-card">
+        <div class="mt-meter" id="mtMeter"><div class="mt-fill" id="mtFill"></div><div class="mt-thr" id="mtThr"></div></div>
+        <div class="row" style="margin-top:12px"><button class="btn" id="mt">${icon('mic', 'sm')} Hadi Kontrol Edelim</button><span class="small muted grow" id="mtInfo">Teste başla ve konuş — işlenmiş sesini sana geri çalacağız.</span><span class="gate-led" id="gateLed" data-tip="Gürültü kapısı">KAPALI</span></div>
+      </div>
+
+      <h3>Gürültü Engelleme</h3>
+      ${seg('nsMode', [['ai', '✨ Yapay Zekâ', 'Önerilen — klavye, fan, sokak sesini siler'], ['standard', 'Standart', 'Tarayıcının yerleşik filtresi'], ['off', 'Kapalı', 'Ham ses']], s.nsMode)}
+
       <h3>Ses İşleme</h3>
-      <div class="setting-row"><div><div class="t">Gürültü Engelleme</div><div class="d">Klavye, fan gibi arka plan seslerini bastırır.</div></div><label class="switch"><input type="checkbox" data-s="noiseSuppression" ${s.noiseSuppression ? 'checked' : ''}><span></span></label></div>
-      <div class="setting-row"><div><div class="t">Yankı Engelleme</div><div class="d">Hoparlörden gelen sesin mikrofona geri dönmesini önler.</div></div><label class="switch"><input type="checkbox" data-s="echoCancellation" ${s.echoCancellation ? 'checked' : ''}><span></span></label></div>
-      <div class="setting-row"><div><div class="t">Otomatik Kazanç Kontrolü</div><div class="d">Ses seviyeni otomatik dengeler.</div></div><label class="switch"><input type="checkbox" data-s="autoGain" ${s.autoGain ? 'checked' : ''}><span></span></label></div>
+      ${sw('enhance', 'Ses Netleştirici', 'Sesini daha yakın, dolgun ve net yapar (kompresör + netlik ekolayzırı). "Sesin uzaktan geliyor" sorununu çözer.', s.enhance !== false)}
+      ${sw('gate', 'Gürültü Kapısı', 'Konuşmadığında mikrofonunu tamamen sessize alır; arkadaki sesler hiç gitmez.', s.gate !== false)}
+      <div id="gateBox" class="${s.gate === false ? 'hidden' : ''}">
+        ${sw('gateAuto', 'Hassasiyeti otomatik belirle', 'Odandaki gürültü seviyesini öğrenip eşiği kendisi ayarlar.', s.gateAuto !== false)}
+        <div id="gateManual" class="${s.gateAuto !== false ? 'hidden' : ''}" style="padding:10px 0"><label class="label">Giriş Hassasiyeti <b class="val" id="gdv">${s.gateDb} dB</b></label><input type="range" min="-70" max="-15" step="1" value="${s.gateDb}" class="vol-slider" id="gd"><div class="tiny muted">Test sırasında ölçerdeki çizgi bu eşiği gösterir; konuşurken çizginin sağına geçmelisin.</div></div>
+      </div>
+      ${sw('echoCancellation', 'Yankı Engelleme', 'Hoparlör kullanıyorsan açık kalsın; arkadaşının sesi mikrofonuna geri dönmez.', s.echoCancellation !== false)}
+
+      <h3>Giriş Modu</h3>
+      ${seg('im', [['va', 'Ses Etkinliği', 'Konuşunca otomatik açılır'], ['ptt', 'Bas-Konuş', 'Tuşa basılıyken konuşursun']], s.ptt ? 'ptt' : 'va')}
+      <div class="row ${s.ptt ? '' : 'hidden'}" id="pttRow" style="margin-top:12px"><span>Kısayol:</span><button class="btn secondary sm" id="pttKey">${esc(s.pttLabel)}</button><span class="small muted">değiştirmek için tıkla ve bir tuşa bas</span></div>
+
       <h3>Yayın Kalitesi (Ekran Paylaşımı)</h3><select class="select" id="sq">${Object.entries(SCREEN_PRESETS).map(([k, p]) => `<option value="${k}" ${s.screenQuality === k ? 'selected' : ''}>${p.label}</option>`).join('')}</select>
-      <h3>Kamera</h3><div style="background:var(--bg-0);border-radius:8px;aspect-ratio:16/9;max-width:420px;display:grid;place-items:center;overflow:hidden" id="camBox"><button class="btn" id="camTest">Kamerayı Test Et</button></div>`;
-    const save = () => VoiceSettings.save(s);
+      <h3>Kamera</h3><div class="cam-box" id="camBox"><button class="btn" id="camTest">${icon('video', 'sm')} Kamerayı Test Et</button></div>
+      <div class="tip-card">💡 <b>Daha iyi ses için:</b> mikrofonu ağzına 10-15 cm yaklaştır, hoparlör yerine kulaklık kullan ve Windows ses ayarlarında mikrofon "geliştirmelerini" kapat.</div>`;
+    const save = () => { VoiceSettings.save(s); Voice.applyFx(); this.micTest?.fx?.update(s); };
+    const rebuild = async () => {
+      VoiceSettings.save(s); Voice.switchInput();
+      if (this.micTest) { this.micTest.stop(); this.micTest = await Voice.micTest(meter); this.micTest.loopback(true); }
+    };
+    const pct = (db) => Math.max(0, Math.min(100, ((db + 80) / 70) * 100));
+    const meter = (st) => {
+      const fill = $('#mtFill', b); if (!fill) return;
+      fill.style.width = pct(st.db) + '%'; fill.classList.toggle('open', st.open);
+      $('#mtThr', b).style.left = pct(st.threshold) + '%';
+      const led = $('#gateLed', b); led.classList.toggle('on', st.open); led.textContent = st.open ? 'AÇIK' : 'KAPALI';
+      if (s.gateAuto !== false && s.gate !== false) $('#mtInfo', b).textContent = `Otomatik eşik: ${Math.round(st.threshold)} dB • Ortam gürültüsü: ${Math.round(st.floor)} dB${st.ai ? ' • ✨ Yapay zekâ aktif' : ''}`;
+      else $('#mtInfo', b).textContent = `Seviye: ${Math.round(st.db)} dB${st.ai ? ' • ✨ Yapay zekâ aktif' : ''}`;
+    };
+    $('#mtThr', b).style.left = pct(s.gateDb) + '%';
     b.onchange = (e) => {
       const t = e.target;
-      if (t.id === 'inDev') { s.inputId = t.value; save(); Voice.switchInput(); }
+      if (t.id === 'inDev') { s.inputId = t.value; rebuild(); }
       if (t.id === 'outDev') { s.outputId = t.value; save(); Voice.setOutput(t.value); }
-      if (t.name === 'im') { s.ptt = t.value === 'ptt'; save(); $('#pttRow', b).classList.toggle('hidden', !s.ptt); Voice.applyMicEnabled(); App.renderVoicePanel(); }
-      if (t.dataset.s) { s[t.dataset.s] = t.checked; save(); Voice.switchInput(); }
+      if (t.dataset.s) {
+        s[t.dataset.s] = t.checked;
+        if (t.dataset.s === 'echoCancellation') rebuild(); else save();
+        $('#gateBox', b).classList.toggle('hidden', s.gate === false);
+        $('#gateManual', b).classList.toggle('hidden', s.gateAuto !== false);
+      }
       if (t.id === 'sq') { s.screenQuality = t.value; save(); }
     };
-    b.oninput = (e) => { if (e.target.id === 'thr') { s.threshold = +e.target.value; save(); } };
+    b.oninput = (e) => {
+      if (e.target.id === 'ig') { s.inputGain = +e.target.value; $('#igv', b).textContent = '%' + s.inputGain; save(); }
+      if (e.target.id === 'gd') { s.gateDb = +e.target.value; $('#gdv', b).textContent = s.gateDb + ' dB'; $('#mtThr', b).style.left = pct(s.gateDb) + '%'; save(); }
+    };
     b.onclick = async (e) => {
+      const sb = e.target.closest('.seg button');
+      if (sb) {
+        const name = sb.parentElement.dataset.seg, v = sb.dataset.v;
+        $$('button', sb.parentElement).forEach((x) => x.classList.toggle('on', x === sb));
+        if (name === 'nsMode') { s.nsMode = v; rebuild(); toast(v === 'ai' ? '✨ Yapay zekâ gürültü engelleme açıldı' : v === 'standard' ? 'Standart gürültü engelleme' : 'Gürültü engelleme kapalı'); }
+        if (name === 'bitrate') { s.bitrate = +v; save(); for (const p of Voice.peers.values()) Voice.applyAudioBitrate(p); }
+        if (name === 'im') { s.ptt = v === 'ptt'; save(); $('#pttRow', b).classList.toggle('hidden', !s.ptt); Voice.applyMicEnabled(); App.renderVoicePanel(); }
+      }
       if (e.target.closest('#mt')) {
-        if (this.micTest) { this.micTest.stop(); this.micTest = null; $('#mt', b).textContent = 'Hadi Kontrol Edelim'; $('#mtBar', b).style.width = 0; return; }
+        const btn = $('#mt', b);
+        if (this.micTest) { this.micTest.stop(); this.micTest = null; btn.innerHTML = `${icon('mic', 'sm')} Hadi Kontrol Edelim`; btn.classList.remove('danger'); meter({ db: -100, threshold: s.gateDb, open: false, floor: -70 }); return; }
         try {
-          this.micTest = await Voice.micTest((lvl) => { const bar = $('#mtBar', b); if (bar) { bar.style.width = Math.min(100, lvl * 400) + '%'; bar.style.background = lvl > s.threshold ? 'var(--green)' : 'var(--text-faint)'; } });
+          btn.disabled = true;
+          this.micTest = await Voice.micTest(meter);
           this.micTest.loopback(true);
-          $('#mt', b).textContent = 'Testi Durdur';
-        } catch (er) { toast('Mikrofona erişilemedi: ' + er.message, 'err'); }
+          btn.innerHTML = `${icon('x', 'sm')} Testi Durdur`; btn.classList.add('danger');
+        } catch (er) { toast('Mikrofona erişilemedi: ' + er.message, 'err'); } finally { btn.disabled = false; }
       }
       if (e.target.closest('#pttKey')) {
         const btn = $('#pttKey', b); btn.textContent = 'Bir tuşa bas…';
-        const k = (ev) => { ev.preventDefault(); s.pttKey = ev.code; s.pttLabel = ev.key.length === 1 ? ev.key.toUpperCase() : ev.code; save(); btn.textContent = s.pttLabel; window.removeEventListener('keydown', k, true); App.renderVoicePanel(); };
+        const k = (ev) => { ev.preventDefault(); s.pttKey = ev.code; s.pttLabel = ev.key.length === 1 ? ev.key.toUpperCase() : ev.code; VoiceSettings.save(s); btn.textContent = s.pttLabel; window.removeEventListener('keydown', k, true); App.renderVoicePanel(); };
         window.addEventListener('keydown', k, true);
       }
       if (e.target.closest('#camTest')) {
