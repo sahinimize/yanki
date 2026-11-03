@@ -64,9 +64,16 @@ const ICONS = {
 const icon = (n, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n] || ''}"/></svg>`;
 const LOGO_SVG = `<svg viewBox="0 0 24 24" width="28" height="28" fill="#fff"><path d="M12 3a9 9 0 0 0-9 9c0 1.9.6 3.7 1.6 5.1L3.5 21l4-1.1A9 9 0 1 0 12 3zm-3.5 10.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3.5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3.5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>`;
 
+// ─── Oturum anahtarı (masaüstünde sunucu adresi değişse bile korunur) ───
+const TokenStore = {
+  get() { let t = null; try { t = localStorage.getItem('yanki_token'); } catch { /* yoksay */ } if (!t && window.yankiDesktop?.getSavedToken) { t = window.yankiDesktop.getSavedToken() || null; if (t) try { localStorage.setItem('yanki_token', t); } catch { /* yoksay */ } } return t; },
+  set(t) { try { localStorage.setItem('yanki_token', t); } catch { /* yoksay */ } window.yankiDesktop?.saveToken?.(t); },
+  clear() { try { localStorage.removeItem('yanki_token'); } catch { /* yoksay */ } window.yankiDesktop?.saveToken?.(''); },
+};
+
 // ─── API ───
 const API = {
-  token: localStorage.getItem('yanki_token'),
+  token: TokenStore.get(),
   async req(method, url, body, isForm) {
     const opts = { method, headers: {} };
     if (this.token) opts.headers.Authorization = 'Bearer ' + this.token;
@@ -77,7 +84,7 @@ const API = {
     const r = await fetch(url, opts);
     let data = null;
     try { data = await r.json(); } catch { /* boş */ }
-    if (r.status === 401 && this.token && !url.startsWith('/api/auth')) { localStorage.removeItem('yanki_token'); location.reload(); }
+    if (r.status === 401 && this.token && !url.startsWith('/api/auth')) { TokenStore.clear(); location.reload(); }
     if (!r.ok) throw new Error(data?.error || 'Bir hata oluştu (' + r.status + ')');
     return data;
   },

@@ -1,7 +1,8 @@
-// Burayı kendi bilgilerinle doldur (README → "Yayınlama" adımları)
+// Burayı kendi bilgilerinle doldur
 window.YANKI_SITE = {
   // GitHub deposu: "kullanici-adin/depo-adi"
   githubRepo: 'KULLANICI_ADIN/yanki',
-  // Railway'deki Yankı sunucusunun adresi (tarayıcıdan kullanmak isteyenler için)
-  webUrl: 'https://yanki-sunucun.up.railway.app',
+  // Sabit bir sunucu adresin varsa buraya yaz. Boş bırakırsan güncel adres otomatik bulunur
+  // (Sunucuyu-Baslat.bat her açılışta adresi GitHub'a yazar).
+  webUrl: '',
 };

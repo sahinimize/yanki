@@ -94,8 +94,10 @@ const App = {
       }
       first = false; $('#conn-banner')?.remove();
     });
-    s.on('disconnect', () => { if (!$('#conn-banner')) document.body.append(h('<div id="conn-banner" style="position:fixed;top:0;left:0;right:0;background:var(--yellow);color:#000;text-align:center;font-weight:700;font-size:13px;padding:4px;z-index:999">Bağlantı koptu — yeniden bağlanılıyor…</div>')); });
-    s.on('connect_error', (e) => { if (e.message === 'unauthorized') { localStorage.removeItem('yanki_token'); location.href = '/login'; } });
+    s.on('disconnect', () => {
+      clearInterval(this.discIv);
+      this.discIv = setInterval(() => { if (s.connected) clearInterval(this.discIv); else window.yankiDesktop?.reportDisconnected?.(); }, 20000); if (!$('#conn-banner')) document.body.append(h('<div id="conn-banner" style="position:fixed;top:0;left:0;right:0;background:var(--yellow);color:#000;text-align:center;font-weight:700;font-size:13px;padding:4px;z-index:999">Bağlantı koptu — yeniden bağlanılıyor…</div>')); });
+    s.on('connect_error', (e) => { if (e.message === 'unauthorized') { TokenStore.clear(); location.href = '/login'; } });
     s.on('guild:sync', (g) => {
       const isNew = !this.guilds.has(g.id);
       this.putGuild(g);

@@ -42,7 +42,7 @@ const UserSettings = {
     if (!(await confirmModal('Çıkış Yap', 'Çıkış yapmak istediğine emin misin?', 'Çıkış Yap'))) return;
     Voice.leave(true);
     await API.post('/api/auth/logout').catch(() => {});
-    localStorage.removeItem('yanki_token');
+    TokenStore.clear();
     location.href = '/login';
   },
   account(b) {
@@ -73,7 +73,7 @@ const UserSettings = {
       }
       if (e.target.closest('#delAcc')) {
         const md = modal({ title: 'Hesabı Sil', body: '<p class="muted">Bu işlem geri alınamaz. Devam etmek için şifreni gir.</p><input type="password" class="input" id="dp">', foot: '<button class="btn ghost" data-close>İptal</button><button class="btn danger" id="dGo">Hesabı Sil</button>' });
-        md.$('#dGo').onclick = () => API.del('/api/me', { password: md.$('#dp').value }).then(() => { localStorage.removeItem('yanki_token'); location.href = '/register'; }).catch(errToast);
+        md.$('#dGo').onclick = () => API.del('/api/me', { password: md.$('#dp').value }).then(() => { TokenStore.clear(); location.href = '/register'; }).catch(errToast);
       }
     };
   },

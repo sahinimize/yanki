@@ -4,3 +4,6 @@ dist/
 *.log
 desktop/node_modules/
 desktop/dist/
+# Gizli: GitHub anahtarın burada durur, asla paylaşma
+tools/host-config.json
+tools/bin/

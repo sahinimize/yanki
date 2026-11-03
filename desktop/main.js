@@ -1,6 +1,6 @@
 // Yankı masaüstü uygulaması — Electron ana süreci
 'use strict';
-const { app, BrowserWindow, ipcMain, shell, desktopCapturer, session, Tray, Menu, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, desktopCapturer, session, Tray, Menu, nativeImage, dialog, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -14,7 +14,26 @@ const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 let settings = readJSON(SETTINGS_FILE);
 const saveSettings = () => { try { fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2)); } catch { /* yoksay */ } };
 const clean = (u) => String(u || '').trim().replace(/\/+$/, '');
-const serverUrl = () => clean(settings.serverUrl || process.env.YANKI_SERVER_URL || BUILD_CFG.serverUrl);
+let discovered = settings.lastDiscovered || '';
+const serverUrl = () => clean(settings.serverUrl || process.env.YANKI_SERVER_URL || discovered || BUILD_CFG.serverUrl);
+
+// Sunucu adresi değişebilir (ör. ücretsiz tünel her açılışta yeni adres alır).
+// Güncel adres GitHub deposundaki server.json dosyasından okunur; adres değişince uygulama kendini yeni adrese bağlar.
+let discovering = null;
+function discover() {
+  if (!BUILD_CFG.discoveryUrl || settings.serverUrl || process.env.YANKI_SERVER_URL) return Promise.resolve(false);
+  discovering ||= (async () => {
+    try {
+      const r = await fetch(BUILD_CFG.discoveryUrl, { headers: { Accept: 'application/vnd.github.raw+json', 'User-Agent': 'Yanki-Desktop' }, signal: AbortSignal.timeout(7000), cache: 'no-store' });
+      if (!r.ok) return false;
+      const url = clean((await r.json()).url);
+      if (!/^https?:\/\/\S+$/.test(url) || url === discovered) return false;
+      discovered = url; settings.lastDiscovered = url; saveSettings();
+      return true;
+    } catch { return false; } finally { setTimeout(() => (discovering = null), 0); }
+  })();
+  return discovering;
+}
 const serverOrigin = () => { try { return new URL(serverUrl()).origin; } catch { return null; } };
 const ICON = path.join(__dirname, 'build', 'icon.png');
 
@@ -49,8 +68,10 @@ function createWindow() {
     e.preventDefault(); shell.openExternal(url);
   });
   // Sunucuya ulaşılamazsa güzel bir çevrimdışı ekranı göster
-  win.webContents.on('did-fail-load', (e, code, desc, url, isMain) => {
-    if (isMain && code !== -3) win.loadFile(path.join(__dirname, 'offline.html'), { query: { mode: 'offline', err: desc, url: serverUrl() } });
+  win.webContents.on('did-fail-load', async (e, code, desc, url, isMain) => {
+    if (!isMain || code === -3) return;
+    if (await discover()) return loadApp();
+    win.loadFile(path.join(__dirname, 'offline.html'), { query: { mode: 'offline', err: desc, url: serverUrl() } });
   });
   win.on('page-title-updated', (e) => { e.preventDefault(); win.setTitle('Yankı'); });
   const saveBounds = () => { if (!win.isMaximized() && !win.isMinimized()) settings.bounds = win.getBounds(); settings.maximized = win.isMaximized(); saveSettings(); };
@@ -133,13 +154,28 @@ function setupUpdater() {
 // ─── Arayüzle iletişim ───
 ipcMain.handle('yanki:get-info', () => ({ version: app.getVersion(), update: updateState, serverUrl: serverUrl(), platform: process.platform }));
 ipcMain.handle('yanki:install-update', () => { if (updateState?.state === 'ready') { quitting = true; autoUpdater.quitAndInstall(true, true); } });
-ipcMain.handle('yanki:set-server', (_e, url) => {
+ipcMain.handle('yanki:set-server', async (_e, url) => {
   url = clean(url);
+  if (!url && BUILD_CFG.discoveryUrl) { delete settings.serverUrl; saveSettings(); await discover(); loadApp(); return { ok: true }; }
   if (!/^https?:\/\/[^\s]+$/.test(url)) return { error: 'Geçerli bir adres gir (https://...)' };
   settings.serverUrl = url; saveSettings(); loadApp();
   return { ok: true };
 });
-ipcMain.handle('yanki:retry', () => loadApp());
+ipcMain.handle('yanki:retry', async () => { await discover(); loadApp(); });
+// Arayüz uzun süre sunucuya bağlanamazsa adres değişmiş olabilir: yeni adresi ara
+ipcMain.on('yanki:disconnected', async () => { if (await discover()) loadApp(); });
+// Oturum anahtarı uygulamada (şifreli) saklanır; sunucu adresi değişse bile kullanıcı çıkış yapmış olmaz
+const fromServer = (e) => { try { return new URL(e.senderFrame.url).origin === serverOrigin(); } catch { return false; } };
+ipcMain.on('yanki:token-get', (e) => {
+  if (!fromServer(e) || !settings.token) { e.returnValue = ''; return; }
+  try { e.returnValue = settings.tokenEnc ? safeStorage.decryptString(Buffer.from(settings.token, 'base64')) : settings.token; } catch { e.returnValue = ''; }
+});
+ipcMain.on('yanki:token-set', (e, t) => {
+  if (!fromServer(e)) return;
+  const enc = !!t && safeStorage.isEncryptionAvailable();
+  settings.token = !t ? '' : enc ? safeStorage.encryptString(t).toString('base64') : t;
+  settings.tokenEnc = enc; saveSettings();
+});
 ipcMain.on('yanki:badge', (_e, n) => {
   n = Math.max(0, Number(n) || 0);
   if (process.platform === 'win32' && win) {
@@ -155,9 +191,10 @@ ipcMain.on('yanki:badge', (_e, n) => {
 
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
 app.on('before-quit', () => { quitting = true; });
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
   setupPermissions();
+  await discover();
   createWindow();
   createTray();
   setupUpdater();

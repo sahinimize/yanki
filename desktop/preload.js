@@ -12,4 +12,7 @@ contextBridge.exposeInMainWorld('yankiDesktop', {
   setServer: (url) => ipcRenderer.invoke('yanki:set-server', String(url)),
   retry: () => ipcRenderer.invoke('yanki:retry'),
   setBadge: (n) => ipcRenderer.send('yanki:badge', Number(n) || 0),
+  getSavedToken: () => ipcRenderer.sendSync('yanki:token-get'),
+  saveToken: (t) => ipcRenderer.send('yanki:token-set', String(t || '')),
+  reportDisconnected: () => ipcRenderer.send('yanki:disconnected'),
 });

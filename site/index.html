@@ -126,7 +126,10 @@
     const C = window.YANKI_SITE || {};
     const dl = `https://github.com/${C.githubRepo}/releases/latest/download/Yanki-Setup.exe`;
     document.querySelectorAll('[data-download]').forEach((a) => (a.href = dl));
-    document.querySelectorAll('[data-web]').forEach((a) => (a.href = C.webUrl || '#'));
+    const setWeb = (u) => document.querySelectorAll('[data-web]').forEach((a) => { a.href = u || '#'; if (!u) a.onclick = (e) => { e.preventDefault(); alert('Yankı sunucusu şu an kapalı. Biraz sonra tekrar dene.'); }; else a.onclick = null; });
+    setWeb(C.webUrl);
+    if (!C.webUrl) fetch(`https://api.github.com/repos/${C.githubRepo}/contents/server.json?ref=yanki-adres`, { headers: { Accept: 'application/vnd.github.raw+json' }, cache: 'no-store' })
+      .then((r) => r.ok ? r.json() : null).then((j) => setWeb(j && j.url)).catch(() => setWeb(''));
     document.getElementById('gh').href = `https://github.com/${C.githubRepo}/releases`;
     document.getElementById('y').textContent = new Date().getFullYear();
     fetch(`https://api.github.com/repos/${C.githubRepo}/releases/latest`).then((r) => r.ok && r.json()).then((r) => {

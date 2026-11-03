@@ -61,7 +61,7 @@ const Auth = {
       btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;border-top-color:#fff"></div>';
       try {
         const r = await API.post(isReg ? '/api/auth/register' : '/api/auth/login', fd);
-        localStorage.setItem('yanki_token', r.token);
+        TokenStore.set(r.token);
         API.token = r.token;
         location.href = this.invite ? '/invite/' + this.invite : '/app/@me';
       } catch (ex) {

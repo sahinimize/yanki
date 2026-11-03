@@ -17,68 +17,44 @@ npm start
 
 > Mikrofon, kamera ve ekran paylaşımı tarayıcı kuralları gereği sadece `localhost` üzerinde veya **HTTPS** ile çalışır.
 
-## Arkadaşlarınla internet üzerinden kullanmak
-
-En kolay yol, ücretsiz bir HTTPS tüneli: [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) ile
-
-```bash
-cloudflared tunnel --url http://localhost:3000
-```
-
-Sana verilen `https://….trycloudflare.com` adresini arkadaşlarına gönder. Kalıcı kullanım için bir VPS'e kurup alan adı + HTTPS ekleyebilirsin:
-
-```bash
-SSL_CERT=/yol/fullchain.pem SSL_KEY=/yol/privkey.pem PORT=443 npm start
-```
-
-Farklı ağlardaki kişiler arasında sesli/görüntülü bağlantı bazı modemlerde kurulamayabilir; bu durumda bir TURN sunucusu ekle (ör. coturn):
-`TURN_URL=turn:sunucun.com:3478 TURN_USER=kullanici TURN_PASS=sifre npm start`
-
-## 🚀 Yayınlama: Sunucu + Setup.exe + İndirme Sitesi
-
-Yapı şöyle:
+## 🚀 Yayınlama (ücretsiz): Sunucu + Setup.exe + İndirme Sitesi
 
 ```
- Kullanıcılar ──► Yanki-Setup.exe (Electron) ──┐
-                                                ├──► Railway'deki Yankı sunucusu (API, sohbet, ses sinyalleri, veritabanı)
- Tarayıcıdan girenler ─────────────────────────┘
- İndirme sitesi (Vercel) ──► GitHub Releases'teki Yanki-Setup.exe
+ Kullanıcılar ──► Yanki-Setup.exe ──┐                       ┌──► Senin bilgisayarında çalışan Yankı sunucusu
+ Tarayıcıdan girenler ──────────────┼──► Cloudflare tüneli ─┘     (Sunucuyu-Baslat.bat)
+ İndirme sitesi (Vercel) ───────────┘    (ücretsiz https adresi)
+                  ▲
+   Güncel adres: GitHub'daki server.json (betik her açılışta otomatik yazar)
 ```
 
-> **Neden sunucu Vercel'de değil?** Vercel "serverless" çalışır: istekler kısa ömürlü fonksiyonlarda işlenir, sürekli açık WebSocket bağlantısı ve kalıcı disk yoktur. Yankı'nın canlı sohbet, sesli kanal ve veritabanı için ikisine de ihtiyacı var. O yüzden sunucu Railway'de (ya da Render/Fly.io/VPS), **indirme sitesi Vercel'de** çalışır.
+- **Sunucu:** kendi bilgisayarında çalışır. Cloudflare'in ücretsiz tüneli onu internete açar; hesap da kart da gerekmez.
+- **Adres değişirse:** tünel adresi her açılışta değişir. `Sunucuyu-Baslat.bat` yeni adresi GitHub'a yazar, kurulu uygulamalar ve indirme sitesi oradan okur. Kullanıcıların oturumu açık kalır.
+- **Dikkat:** başlatma penceresi açık ve bilgisayar uyanık olduğu sürece Yankı çalışır.
+- **İleride:** ücretli veya ücretsiz bir sunucuya geçersen (Railway, Oracle Free vb.), `yanki-adres` dalındaki `server.json`'a yeni adresi yazman yeterli. Exe'yi yeniden dağıtman gerekmez. `Dockerfile` ve `railway.json` hazır duruyor.
 
 ### 1) Kodu GitHub'a yükle
-1. github.com'da yeni bir depo oluştur, örneğin `yanki`. Otomatik güncellemenin herkese çalışması için depo **Public** olmalı.
-2. Bu klasörü o depoya yükle (GitHub Desktop ile "Add existing repository → Publish" en kolayı).
+github.com'da **Public** bir `yanki` deposu aç ve bu klasörü yükle (GitHub Desktop → Add local repository → Publish, "Keep this code private" kapalı).
 
-### 2) Sunucuyu Railway'de yayınla
-1. railway.com → **New Project → Deploy from GitHub repo** → `yanki` deposunu seç. `Dockerfile` ve `railway.json` otomatik algılanır.
-2. Servise tıkla → **Volumes → New Volume** → Mount path: `/data`. Bu adım şart; yoksa her güncellemede hesaplar ve mesajlar silinir.
-3. **Settings → Networking → Generate Domain**. Sana `https://yanki-xxxx.up.railway.app` gibi bir adres verir. Bu adres artık senin sunucun.
-4. İstersen **Variables** kısmından `MAX_UPLOAD_MB`, `TENOR_API_KEY`, `TURN_URL` vb. ekle.
+### 2) Sunucuyu başlat
+1. `Sunucuyu-Baslat.bat` dosyasına çift tıkla.
+2. İlk seferde iki şey sorar: GitHub depo adın (ör. `ahmet/yanki`) ve bir GitHub anahtarı (token). Token'ın nasıl alınacağını pencerede adım adım yazar.
+3. Yeşil kutuda `https://….trycloudflare.com` adresi çıkar ve GitHub'a otomatik yazılır.
 
 ### 3) Setup.exe'yi üret
-1. GitHub deposunda **Settings → Secrets and variables → Actions → Variables → New repository variable**:
-   - Name: `YANKI_SERVER_URL`
-   - Value: Railway adresin (ör. `https://yanki-xxxx.up.railway.app`, sonunda `/` olmadan)
-2. **Actions** sekmesi → **Masaüstü Sürümü** → **Run workflow** → sürüm: `1.0.0` → çalıştır.
-3. Yaklaşık 5 dakika sonra **Releases** sayfasında `Yanki-Setup.exe` hazır olur. Bunu insanlara gönderebilirsin.
+GitHub → **Actions** → **Masaüstü Sürümü** → **Run workflow** → sürüm `1.0.0`. Birkaç dakika sonra **Releases**'te `Yanki-Setup.exe` hazır olur. Sunucu adresini girmene gerek yok; uygulama güncel adresi kendisi bulur.
 
-### 4) İndirme sitesini Vercel'de yayınla
-1. `site/config.js` dosyasında `githubRepo` ve `webUrl` alanlarını doldur, GitHub'a gönder.
-2. vercel.com → **Add New → Project** → depoyu seç → **Root Directory: `site`** → Framework: **Other** → **Deploy**.
-3. Sitedeki "Windows için İndir" butonu her zaman en son sürümü indirir.
+### 4) İndirme sitesini Vercel'e koy
+`site/config.js` içine `githubRepo`'yu yaz ve GitHub'a gönder. Sonra Vercel → **Add New → Project** → depo → **Root Directory: `site`** → **Deploy**.
 
 ## 🔄 Güncelleme nasıl çalışır?
 
-İki tür güncelleme var. Kullanıcıların ikisinde de sağ üstte yeşil **Güncelle** butonu görünür:
-
 | Ne değişti? | Ne yaparsın? | Kullanıcı ne görür? |
 |---|---|---|
-| Arayüz veya sunucu (`public/`, `server.js`). Güncellemelerin neredeyse hepsi bu | Kodu GitHub'a gönder. Railway kendiliğinden yeniden yayınlar | Birkaç saniye içinde **Güncelle** butonu çıkar, tıklayınca yeni sürüm yüklenir |
-| Masaüstü uygulamasının kendisi (`desktop/`) | **Actions → Masaüstü Sürümü → Run workflow** ile daha büyük bir sürüm numarası ver (ör. `1.0.1`) | Uygulama yeni sürümü arka planda indirir, sonra **Güncelle** butonu çıkar. Tıklayınca uygulama yeniden başlar ve güncellenir |
+| Arayüz veya sunucu (`public/`, `server.js`). Güncellemelerin neredeyse hepsi bu | Yeni dosyaları klasöre koy, `Sunucuyu-Baslat.bat` penceresini kapatıp tekrar aç. Kodu GitHub'a da gönder | Sağ üstte yeşil **Güncelle** butonu çıkar, tıklayınca yeni sürüm yüklenir |
+| Masaüstü uygulamasının kendisi (`desktop/`) | GitHub'a gönder → **Actions → Masaüstü Sürümü → Run workflow**, öncekinden büyük bir numara ver (`1.0.1`) | Uygulama yeni sürümü arka planda indirir, **Güncelle** butonu çıkar, tıklayınca yeniden başlar |
 
-> ⚠️ Kurulum dosyası dijital olarak imzalı değil. İlk kurulumda Windows "Bilgisayarınız korundu" uyarısı gösterebilir. Kullanıcıların **Ek bilgi → Yine de çalıştır** demesi gerekir. Bu uyarının tamamen kalkması için ücretli bir kod imzalama sertifikası gerekir.
+> ⚠️ Kurulum dosyası dijital olarak imzalı değil. İlk kurulumda Windows "Bilgisayarınız korundu" diyebilir; kullanıcılar **Ek bilgi → Yine de çalıştır** demeli.
+> 🔒 `tools/host-config.json` içinde GitHub anahtarın durur. Bu dosyayı kimseyle paylaşma; zaten GitHub'a yüklenmez (`.gitignore`).
 
 ## Masaüstü uygulamasını geliştirirken çalıştırma
 
